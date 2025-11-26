@@ -28,12 +28,12 @@ Update configuration before building as this is common for deployment methods â€
 
 Modify `docker/config/config.json`:
 
-1. **Set host IP address**
-2. **Set telnet server IP address** (use host IP in simulated environments)
-3. **Align telnet ports**
-   - `docker/scripts/servertest.py` uses **9090**
-   - `config.json` defaults to **9091**
-   - Change `config.json` to **9090**
+1. Set host IP address
+2. Set telnet server IP address (use host IP for simulated environment testing and `127.0.0.1` for OAI gNB)
+3. Align telnet ports
+   - `docker/scripts/servertest.py` uses 9090
+   - `config.json` defaults to 9091
+   - Change `config.json` to 9090
 4. Update the `ves.url` parameter to `http://<HOST_IP>:8080/eventListener/v7` to connect with the SMO VES Collector.
 5. Update the `docker/scripts/servertest.py` to include the missing O1 configuration from CU. Either copy it from `docker/scripts/cu_servertest.py` or use this [servertest.py](servertest.py).
 
