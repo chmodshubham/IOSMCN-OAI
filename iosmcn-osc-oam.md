@@ -91,6 +91,7 @@ This is the docker based deployment method for OAM component.
 
 ```bash
 cd ~/smo/oam-0.4.0.iosmcn.smo.oam/
+chmod -R +x .
 ```
 
 2. Install dependencies:
