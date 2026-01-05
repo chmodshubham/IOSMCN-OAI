@@ -1,23 +1,25 @@
-# IOS-MCN O1 Adapter Deployment Guide
+# IOS-MCN OAI O1 Adapter Deployment Guide
 
-**Component:** O1 Adapter for OAI gNB
-**Version:** `v0.3.0` (Agartala release)
-**Modes:** Docker or source or makefile build
+Please refer to [OAI O1 Adapter repository](https://gitlab.eurecom.fr/oai/o1-adapter) for the official documentation.
 
-## 1. Repository Preparation
+## 1. System Preparation
+
+### Clone repository
 
 ```bash
 git clone https://github.com/ios-mcn/ios-mcn-releases.git
-cd ios-mcn-releases/Agartala/v0.3.0/RAN/source-code/
-tar -xzf ios-mcn-ran-0.3.0.iosmcn.ran.tar.gz
-mv ios-mcn-ran-0.3.0.iosmcn.ran ran
-mv ran/ ~/
+cd ios-mcn-releases/Agartala/v0.4.0/RAN/source-code/
+tar -xzf ios-mcn-ran-0.4.0.iosmcn.ran.tar.gz
+mv ios-mcn-ran-0.4.0.iosmcn.ran ~/ran
+cd ~/ran/o1-adapter/
 ```
 
-Navigate to the O1 adapter:
+### Set Execute Permissions
+
+Set execute permissions for all scripts and executables.
 
 ```bash
-cd ~/ran/o1-adapter/
+chmod -R +x .
 ```
 
 ## 2. Update Configuration
@@ -28,14 +30,13 @@ Update configuration before building as this is common for deployment methods â€
 
 Modify `docker/config/config.json`:
 
-1. Set host IP address
-2. Set telnet server IP address (use host IP for simulated environment testing and `127.0.0.1` for OAI gNB)
-3. Align telnet ports
+1. Set host IP address and telnet server IP address to your host machineâ€™s IP address.
+2. Align telnet ports
    - `docker/scripts/servertest.py` uses 9090
    - `config.json` defaults to 9091
    - Change `config.json` to 9090
-4. Update the `ves.url` parameter to `http://<HOST_IP>:8080/eventListener/v7` to connect with the SMO VES Collector.
-5. Update the `docker/scripts/servertest.py` to include the missing O1 configuration from CU. Either copy it from `docker/scripts/cu_servertest.py` or use this [servertest.py](servertest.py).
+3. Update the `ves.url` parameter to `http://<HOST_IP>:8080/eventListener/v7` to connect with the SMO VES Collector (IOSMCN based).
+4. Update the `docker/scripts/servertest.py` to include the missing O1 configuration from CU. Either copy it from `docker/scripts/cu_servertest.py` or use this [servertest.py](servertest.py).
 
 ### For Makefile-based builds:
 
@@ -232,7 +233,7 @@ cp -r docker/config/ src/
 ### 4.6 Install NETCONF Dependencies
 
 ```bash
-cd ran/o1-adapter/docker/scripts/
+cd o1-adapter/docker/scripts/
 sudo ./netconf_dep_install.sh
 sudo ldconfig
 ```
@@ -252,14 +253,14 @@ mkdir -p yang
 sudo ./install-yangs.sh
 ```
 
-### 4.7 Build the gNB Adapter (Source)
+### 4.7 Build the gNB Adapter
 
 ```bash
 cd ../../src/
 ./build.sh
 ```
 
-Rebuild after config changes:
+To rebuild after config changes:
 
 ```bash
 rm gnb-adapter
@@ -309,18 +310,49 @@ Through `Makefile`, we can deploy the **four different combinations** depending 
 
 #### Standalone Adapter
 
+Build the gNB Adapter container:
+
 ```bash
 make run-o1-oai-adapter
 ```
 
+Start the gNB Adapter:
+
+```bash
+./start-adapter.sh --adapter
+```
+
+Install dependencies for telnet server:
+
+```bash
+sudo apt update
+sudo apt install python3-pip
+pip3 install telnetlib3
+```
+
+Run the telnet test server on a separate terminal:
+
+```bash
+cd ran/o1-adapter/docker/scripts/
+python3 servertest.py
+```
+
 #### Adapter + Telnet Test Server
+
+Build the gNB Adapter and telnet server containers:
 
 ```bash
 make run-o1-adapter-telnet
 ```
 
+Start the gNB Adapter:
+
+```bash
+./start-adapter.sh --adapter
+```
+
 > [!IMPORTANT]
-> The below methods for SMO are not tested and still expected to fail. See [iosmcn-smo.md](iosmcn-smo.md) for more details on SMO deployment and integration.
+> The below methods for SMO are not tested and still expected to fail. See [iosmcn-osc-oam.md](iosmcn-osc-oam.md) for more details on SMO deployment and integration.
 
 #### Adapter + SMO
 
@@ -342,23 +374,9 @@ make teardown
 
 ## 6. Testing the gNB Adapter with OAI gNB
 
-### 6.1 Update `config.json` for simulated integration
+### 6.1 Start gNB Adapter
 
-- Set telnet server IP to `127.0.0.1`. Keep the host IP as is.
-- Set port to `9090`
-- Rebuild gnb-adapter (docker or source)
-
-### 6.2 Start NETCONF server (only for source-based builds)
-
-```bash
-sudo netopeer2-server -d -v3 -t 60
-```
-
-Skip if using docker-based adapter.
-
-### 6.3 Start gNB Adapter
-
-Docker:
+Docker or makefile-based:
 
 ```bash
 ./start-adapter.sh --adapter
@@ -367,18 +385,16 @@ Docker:
 Source:
 
 ```bash
-cd src/
+cd o1-adapter/src/
 sudo ./gnb-adapter
 ```
 
-### 6.4 Start OAI gNB (RFsim + O1 Telnet)
+### 6.2 Start OAI gNB (RFsim + O1 Telnet)
 
 ```bash
 sudo ./nr-softmodem \
   -O ../../../targets/PROJECTS/GENERIC-NR-5GC/CONF/gnb.sa.band78.fr1.106PRB.usrpb210.conf \
-  -E \
   --rfsim \
-  --rfsimulator.serveraddr server \
   --gNBs.[0].min_rxtxtime 6 \
   --telnetsrv \
   --telnetsrv.listenport 9090 \
