@@ -1,27 +1,23 @@
-# IOS-MCN SMO Deployment Guide
+# IOS-MCN OSC OAM Deployment Guide
 
-**Component:** Service Management and Orchestration (SMO)
-**Release:** Agartala `v0.3.0`
-**Scope:** Documentation viewer, OAM, FOCoM, Near-RT RIC and Unified Dashboard
+Please refer to [OSC OAM repository](https://gerrit.o-ran-sc.org/r/admin/repos/oam) for the official documentation.
+
+![iosmcn smo topology](./images/iosmcn-smo-topology.png)
 
 ## 1. Repository Setup
 
 ```bash
 git clone https://github.com/ios-mcn/ios-mcn-releases.git
-cd ios-mcn-releases/Agartala/v0.3.0/SMO/source-code
-tar -xf iosmcn.agartala.v0.2.0.smo.source.tar
-mv iosmcn.agartala.v0.2.0.smo.source smo/
-mv smo ~/
+cd ios-mcn-releases/Agartala/v0.4.0/SMO/source-code
+tar -xf iosmcn.agartala.v0.4.0.smo.source.tar
+mv iosmcn.agartala.v0.4.0.smo.source ~/smo/
+cd ~/smo/
 ```
 
 Extract SMO components:
 
 ```bash
-cd ~/smo/
-tar -xzf focom-0.2.0.iosmcn.smo.focom.tar.gz
-tar -xzf near-rt-ric-0.2.0.iosmcn.smo.near-rt-ric.tar.gz
-tar -xzf oam-0.2.0.iosmcn.smo.oam.tar.gz
-tar -xzf unified-dashboard-0.2.0.iosmcn.smo.unified-dashboard.tar.gz
+for f in *.tar.gz; do tar -xzf "$f"; done
 
 mkdir tar_files
 mv *.tar.gz tar_files/
@@ -32,7 +28,7 @@ mv *.tar.gz tar_files/
 The SMO repo includes Sphinx-based documentation. To view it locally, set up a Docker-based Sphinx viewer.
 
 ```bash
-cd ~/ios-mcn-releases/Agartala/v0.3.0/SMO
+cd ~/ios-mcn-releases/Agartala/v0.4.0/SMO
 ```
 
 Create `Dockerfile`:
@@ -78,7 +74,7 @@ docker compose up -d
 Access documentation at:
 
 ```
-http://localhost:9999
+http://<host-ip>:9999
 ```
 
 Stop the viewer:
@@ -89,10 +85,13 @@ docker compose down
 
 ## 3. OAM Component Deployment
 
+This is the docker based deployment method for OAM component.
+
 1. Go to the OAM directory:
 
 ```bash
-cd ~/smo/oam-0.2.0.iosmcn.smo.oam/
+cd ~/smo/oam-0.4.0.iosmcn.smo.oam/
+chmod -R +x .
 ```
 
 2. Install dependencies:
@@ -178,16 +177,14 @@ example:
 sed -i -e 's/ios-mcn-smo/ios-mcn/g' -e 's/1.2.2/1.2.1/g' .env
 ```
 
-6. Update Postgres image in `.env` from `IDENTITYDB_IMAGE=docker.io/bitnami/postgresql:13` to `IDENTITYDB_IMAGE=docker.io/bitnamilegacy/postgresql:13` as older images in `bitnami` moved to `bitnamilegacy`.
-
-7. Run environment adaptation:
+6. Run environment adaptation:
 
 ```bash
 # python3 adapt_to_environment -i <deployment-system-ipv4> -d <your-system>
 python3 adapt_to_environment -i 10.228.98.131 -d ubuntu.iosmcn.org
 ```
 
-8. Bring up OAM stack
+7. Bring up OAM stack
 
 ```bash
 ./docker-setup.sh
@@ -195,9 +192,19 @@ python3 adapt_to_environment -i 10.228.98.131 -d ubuntu.iosmcn.org
 
 This orchestrates the OAM-related Docker services using your `/etc/hosts` mappings.
 
+8. Access OAM services
+
+| Service                  | Username | Password                                    | URL                     |
+| ------------------------ | -------- | ------------------------------------------- | ----------------------- |
+| Grafana                  | admin    | admin                                       | `http://<host-ip>:3000` |
+| InfluxDB                 | admin    | mySuP3rS3cr3tT0keN                          | `http://<host-ip>:8086` |
+| Redpanda                 | -        | -                                           | `http://<host-ip>:8780` |
+| ODLUX                    | admin    | Kp8bJ4SXszM0WXlhak3eHlcse2gAw84vaoGGmJvUy2U | `http://<host-ip>:8085` |
+| Non-RT RIC Control Panel | -        | -                                           | `http://<host-ip>:8088` |
+
 ### O1-Adapter Integration
 
-To connect the OAI O1-Adapter with SMO OAM, we need to adjust the VES URL. However, these changes are already incorporated in the [iosmcn-o1-adapter](iosmcn-o1-adapter.md), but for clarity, here are the steps again for each deployment method. Do the following changes to match VES Configurations.
+To connect the OAI O1-Adapter with SMO OAM, we need to adjust the VES URL. However, these changes are already incorporated in the [iosmcn-oai-o1-adapter](iosmcn-oai-o1-adapter.md), but for clarity, here are the steps again for each deployment method. Do the following changes to match VES Configurations.
 
 ```yaml
 # VES Collector Configuration
@@ -225,12 +232,12 @@ Update the `o1-adapter/integration/.env` file:
   - `VES_PORT=8080`
 - Change `VES_COLLECTOR_URL` value from `https://${VES_FQDN}/eventListener/v7` to `http://${VES_IP}:${VES_PORT}/eventListener/v7`
 
-## 4. FOCoM Component Deployment
+## 4. FOCoM Component Deployment (optional)
 
 1. Navigate to FOCoM:
 
 ```bash
-cd ../focom-0.2.0.iosmcn.smo.focom/
+cd ../focom-0.4.0.iosmcn.smo.focom/
 ```
 
 2. Install required tools:
@@ -280,3 +287,5 @@ ansible-playbook -i inventory.ini docker.yaml
 This prepares Docker on the host using the Ansible role.
 
 ## 5. Near-RT RIC and Unified Dashboard
+
+Will be added soon.
